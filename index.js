@@ -3,7 +3,6 @@ const app = express();
 const mongoose = require("mongoose");
 const port = 4000;
 const messages = require("./models/messages");
-const util = require("util");
 
 mongoose.connect("mongodb://localhost:27017/chat");
 
@@ -13,12 +12,17 @@ app.get("/login", (req, res) => {
     res.sendFile("/home/charan/chat_node/login.html");
 })
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
+    const count = await messages.countDocuments({"usr":req.body["usr"]}, {limit: 1});
     
-    messages.insertMany(req.body).then(message =>{
+    if (count === 1) {
+        res.send("Already exists!");
+    } 
+    else {
+        messages.insertMany(req.body).then(message =>{
         res.send(message);
-    });
-    
+        })
+    }  
     //res.redirect("/login/contact");
 })
 
