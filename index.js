@@ -1,6 +1,11 @@
 const express = require("express");
 const app = express();
+const mongoose = require("mongoose");
 const port = 4000;
+const messages = require("./models/messages");
+const util = require("util");
+
+mongoose.connect("mongodb://localhost:27017/chat");
 
 app.use(express.urlencoded({extended: true}));
 
@@ -9,7 +14,12 @@ app.get("/login", (req, res) => {
 })
 
 app.post("/login", (req, res) => {
-    res.redirect("/login/contact");
+    
+    messages.insertMany(req.body).then(message =>{
+        res.send(message);
+    });
+    
+    //res.redirect("/login/contact");
 })
 
 app.get("/login/contact", (req, res) => {
