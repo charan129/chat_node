@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const session = require("express-session");
+const sessions = require("express-session");
 const flash = require("connect-flash");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
@@ -10,11 +10,12 @@ const messages = require("./models/messages");
 mongoose.connect("mongodb://localhost:27017/chat");
 
 app.use(express.urlencoded({extended: true}));
-app.use(cookieParser("secret"));
-app.use(session({
-            secret: "secretsession",
+app.use(cookieParser());
+let session = app.use(sessions({
+            secret: "mysecretkey",
             saveUninitialized: true,
-            resave: true
+            resave: false,
+            cookie: {maxAge: 1000*60*60}
         }
     )
 );
@@ -35,7 +36,8 @@ app.post("/login", async (req, res) => {
         messages.insertMany(req.body).then(message =>{
         console.log(message);
         })
-    }  
+    }
+    session.userId = req.body["usr"];
     res.redirect("/login/contact");
 })
 
@@ -62,6 +64,7 @@ app.post("/login/contact", async (req, res) => {
 
 app.get("/home", (req, res) => {
     res.send("Here");
+    console.log(session.userId);
 } )
 
 app.listen(port, ()=>{
