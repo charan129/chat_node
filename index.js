@@ -79,19 +79,36 @@ app.use("/home", (req, res, next) => {
 }) 
 
 app.get("/home", async (req, res) => {
-
-    const present = await msgs.countDocuments({"from": session.userId, "to": session.senderId}, {limit: 1});
-    if (present == 1) {}
-    else {
-        await msgs.insertMany({"from":session.userId, "to":session.senderId});
+    console.log(session.userId, session.senderId)
+    const present = await msgs.countDocuments({"from": session.senderId, "to": session.userId}, {limit: 1});
+    console.log(present)
+    if (present == 1) {
+        const tm = await msgs.findOne({"from":session.senderId, "to":session.userId})
+        res.locals.textMessages = tm["m"];
+        session.conncection = "old";
     }
-    const tm = await msgs.findOne({"from":session.userId, "to":session.senderId})
-    res.locals.textMessages = tm["m"];
+    else {
+        const value = await msgs.countDocuments({"from": session.userId, "to": session.senderId}, {limit: 1});
+        console.log(value)
+        if (value == 1){}
+        else {
+            await msgs.insertMany({"from":session.userId, "to":session.senderId});
+        }
+        const tm = await msgs.findOne({"from":session.userId, "to":session.senderId})
+        console.log(tm);
+        res.locals.textMessages = tm["m"];
+    }
+    
     res.render("home.ejs");
 } )
 
 app.post("/home", async (req, res, next) => {
-    await msgs.updateOne({"from": session.userId, "to": session.senderId}, {$push:{m:req.body["mg"]}});
+    if (session.conncection == undefined) {
+        await msgs.updateOne({"from": session.userId, "to": session.senderId}, {$push:{m:req.body["mg"]}});
+    }
+    else {
+        await msgs.updateOne({"from": session.senderId, "to": session.userId}, {$push:{m:req.body["mg"]}});
+    }
     next();
 })
 
