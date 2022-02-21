@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const port = 4000;
 const messages = require("./models/messages");
+const msgs = require("./models/sending");
 
 mongoose.connect("mongodb://localhost:27017/chat");
 
@@ -33,20 +34,26 @@ app.post("/login", async (req, res) => {
         
     } 
     else {
-        messages.insertMany(req.body).then(message =>{
-        console.log(message);
-        })
+        await messages.insertMany(req.body);
     }
     session.userId = req.body["usr"];
     res.redirect("/login/contact");
 })
+
+app.use("/login/contact", (req, res, next) => {
+    if (session.userId == undefined) {
+        console.log("No login");
+        res.redirect("/login");
+    }
+    else {next();}
+}) 
 
 app.get("/login/contact", (req, res) => {
     res.render("contact.ejs");
 })
 
 app.post("/login/contact", (req, res, next)=> {
-    req.flash("msg","Does not exist")
+    req.flash("txt","Does not exist")
     res.locals.exist = req.flash();
     next();  
 })
@@ -55,6 +62,7 @@ app.post("/login/contact", async (req, res) => {
     const count = await messages.countDocuments({"usr":req.body["contact"]}, {limit: 1});
     
     if (count === 1) {
+        session.senderId = req.body["contact"];
         res.redirect("/home");
     }
     else {
@@ -62,10 +70,34 @@ app.post("/login/contact", async (req, res) => {
     }
 })
 
-app.get("/home", (req, res) => {
-    res.send("Here");
-    console.log(session.userId);
+app.use("/home", (req, res, next) => {
+    if (session.userId == undefined || session.senderId == undefined) {
+        console.log("No login");
+        res.redirect("/login");
+    }
+    else {next()}
+}) 
+
+app.get("/home", async (req, res) => {
+
+    const present = await msgs.countDocuments({"from": session.userId, "to": session.senderId}, {limit: 1});
+    if (present == 1) {}
+    else {
+        await msgs.insertMany({"from":session.userId, "to":session.senderId});
+    }
+    const tm = await msgs.findOne({"from":session.userId, "to":session.senderId})
+    res.locals.textMessages = tm["m"];
+    res.render("home.ejs");
 } )
+
+app.post("/home", async (req, res, next) => {
+    await msgs.updateOne({"from": session.userId, "to": session.senderId}, {$push:{m:req.body["mg"]}});
+    next();
+})
+
+app.post("/home", (req, res) => {
+    res.redirect("/home");
+})
 
 app.listen(port, ()=>{
     console.log(`listening on ${port}`);

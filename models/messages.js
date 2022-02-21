@@ -7,14 +7,6 @@ const message = new mongoose.Schema({
     passwd : {
         type: "String"
     },
-    messages : [{
-        to: {
-            type: "String"
-        },
-        text: {
-            type: "String"
-        }
-    }]
 });
 
 const messages = mongoose.model("chats", message);

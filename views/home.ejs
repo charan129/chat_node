@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+</head>
+<body>
+    <%locals.textMessages.forEach((val)=>{%>
+        <h4><%= val %></h4>
+        <br>
+    <%})%>
+    <br>
+    <form action="" method="post">
+        Message: <input type="text" name="mg" placeholder="enter the msg">
+        <input type="submit" value="SUBMIT">
+    </form>
+</body>
+</html>
