@@ -22,22 +22,51 @@ let session = app.use(sessions({
 );
 app.use(flash());
 
+app.get("/register", (req, res) => {
+    if (session.charLength == undefined) {
+        res.locals.char = false;
+    }
+    else {
+        res.locals.char = true;
+    }
+    res.render("register.ejs");
+})
+
+app.post("/register", async (req, res) => {
+    const count = await messages.countDocuments({"usr": req.body["uname"]}, {limit:1});
+    if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count != 1) {
+        await messages.insertMany({"usr": req.body["uname"], "passwd": req.body["pword"]});
+        res.redirect("/login");
+    }
+    else {
+        session.charLength = "no";
+        res.redirect("/register");
+    }
+
+})
+
 app.get("/login", (req, res) => {
-    res.sendFile("/home/charan/chat_node/login.html");
+    if (session.pwdMatch == undefined) {
+        res.locals.match = false;
+    }
+    else {
+        res.locals.match = true;
+    }
+    res.render("login.ejs");
 })
 
 app.post("/login", async (req, res) => {
-    const count = await messages.countDocuments({"usr":req.body["usr"]}, {limit: 1});
+    const count = await messages.countDocuments({"usr":req.body["usr"], "passwd":req.body["passwd"]}, {limit: 1});
     
     if (count === 1) {
-        console.log("Already Exists!");
-        
+        session.userId = req.body["usr"];
+        res.redirect("/login/contact");
     } 
     else {
-        await messages.insertMany(req.body);
+        session.pwdMatch = "no";
+        res.redirect("/login");
     }
-    session.userId = req.body["usr"];
-    res.redirect("/login/contact");
+
 })
 
 app.use("/login/contact", (req, res, next) => {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <% if (locals.match) { %>
+        <strong>Username and Password does not Match</strong>
+    <% } %>
+    <br>
+    <form action="" method="post">
+        Username : <input type="text" name="usr" placeholder="Enter the username">
+        Password : <input type="text" name="passwd" placeholder="Enter the Password">
+        <input type="submit" value="Login">
+        <br>
+        <a href="//localhost:4000/register">Register</a>
+    </form>
+</body>
+</html>
