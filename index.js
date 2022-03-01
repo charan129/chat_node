@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
 const sessions = require("express-session");
-const flash = require("connect-flash");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const port = 4000;
@@ -20,15 +19,24 @@ let session = app.use(sessions({
         }
     )
 );
-app.use(flash());
 
-app.get("/register", (req, res) => {
-    if (session.charLength == undefined) {
-        res.locals.char = false;
+app.get('/', (req, res) => {
+    res.redirect("/home");
+})
+
+app.get("/register", (req, res, next) => {
+    if (session.reg == undefined) {
+        res.locals.registered = session.reg;
+        next();
     }
     else {
-        res.locals.char = true;
+        res.locals.registered = session.reg;
+        delete session.reg;
+        next();
     }
+})
+
+app.get("/register", (req, res) => {
     res.render("register.ejs");
 })
 
@@ -38,20 +46,30 @@ app.post("/register", async (req, res) => {
         await messages.insertMany({"usr": req.body["uname"], "passwd": req.body["pword"]});
         res.redirect("/login");
     }
+    else if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count == 1) {
+        session.reg = "Username already exists!";
+        res.redirect("/register");
+    }
     else {
-        session.charLength = "no";
+        session.reg = "Both the username and password should be 8 or above characters";
         res.redirect("/register");
     }
 
 })
 
-app.get("/login", (req, res) => {
+app.get("/login", (req, res, next) => {
     if (session.pwdMatch == undefined) {
-        res.locals.match = false;
+        res.locals.match = session.pwdMatch;
+        next();
     }
     else {
-        res.locals.match = true;
+        res.locals.match = session.pwdMatch;
+        delete session.pwdMatch;
+        next();
     }
+})
+
+app.get("/login", (req, res) => {
     res.render("login.ejs");
 })
 
@@ -63,28 +81,26 @@ app.post("/login", async (req, res) => {
         res.redirect("/login/contact");
     } 
     else {
-        session.pwdMatch = "no";
+        session.pwdMatch = "The username and the password does not match!";
         res.redirect("/login");
     }
 
 })
 
-app.use("/login/contact", (req, res, next) => {
-    if (session.userId == undefined) {
-        console.log("No login");
-        res.redirect("/login");
+app.get("/login/contact", (req, res, next) => {
+    if (session.noUser == undefined) {
+        res.locals.noUsr = session.noUser;
+        next();
     }
-    else {next();}
-}) 
+    else {
+        res.locals.noUsr = session.noUser;
+        delete session.noUser;
+        next();
+    }
+})
 
 app.get("/login/contact", (req, res) => {
     res.render("contact.ejs");
-})
-
-app.post("/login/contact", (req, res, next)=> {
-    req.flash("txt","Does not exist")
-    res.locals.exist = req.flash();
-    next();  
 })
 
 app.post("/login/contact", async (req, res) => {
@@ -95,14 +111,19 @@ app.post("/login/contact", async (req, res) => {
         res.redirect("/home");
     }
     else {
-        res.render("flash.ejs");
+        session.noUser = "The username does not exist";
+        res.redirect("/login/contact");
     }
 })
 
 app.use("/home", (req, res, next) => {
-    if (session.userId == undefined || session.senderId == undefined) {
+    if (session.userId == undefined) {
         console.log("No login");
         res.redirect("/login");
+    }
+    else if (session.senderId == undefined) {
+        console.log("No Contact");
+        res.redirect("/login/contact");
     }
     else {next()}
 }) 
@@ -110,7 +131,6 @@ app.use("/home", (req, res, next) => {
 app.get("/home", async (req, res) => {
     console.log(session.userId, session.senderId)
     const present = await msgs.countDocuments({"from": session.senderId, "to": session.userId}, {limit: 1});
-    console.log(present)
     if (present == 1) {
         const tm = await msgs.findOne({"from":session.senderId, "to":session.userId})
         res.locals.textMessages = tm["m"];

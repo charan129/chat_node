@@ -8,7 +8,7 @@
 </head>
 <body>
     <% if (locals.match) { %>
-        <strong>Username and Password does not Match</strong>
+        <strong><%= locals.match %></strong>
     <% } %>
     <br>
     <form action="" method="post">

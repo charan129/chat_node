@@ -7,6 +7,10 @@
     <title>Contact</title>
 </head>
 <body>
+    <% if (locals.noUsr) { %>
+        <strong><%= locals.noUsr %></strong>
+    <% } %>
+    <br>
     <form action="" method="post">
         <input type="text" name="contact" placeholder="Enter the username to message">
         <input type="submit" value="SUBMIT">

@@ -7,8 +7,8 @@
     <title>Register</title>
 </head>
 <body>
-    <% if (locals.char) { %>
-        <strong>Both the username and password should be minimum 8 characters</strong>
+    <% if (locals.registered) { %>
+        <strong><%= locals.registered %></strong>
     <% } %>
     <br>
     <form action="" method="post">
