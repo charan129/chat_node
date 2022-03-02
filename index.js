@@ -1,11 +1,16 @@
 const express = require("express");
 const app = express();
+const dotenv = require("dotenv");
+dotenv.config();
 const sessions = require("express-session");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
-const port = 4000;
+const port = process.env.PORT;
 const messages = require("./models/messages");
 const msgs = require("./models/sending");
+const mailer = require("./utilities/email");
+const crypto = require("crypto");
+
 
 mongoose.connect("mongodb://localhost:27017/chat");
 
@@ -42,12 +47,37 @@ app.get("/register", (req, res) => {
 
 app.post("/register", async (req, res) => {
     const count = await messages.countDocuments({"usr": req.body["uname"]}, {limit:1});
-    if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count != 1) {
-        await messages.insertMany({"usr": req.body["uname"], "passwd": req.body["pword"]});
-        res.redirect("/login");
+    const countMail = await messages.countDocuments({"email": req.body["email"]}, {limit: 1});
+    if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count != 1 && countMail != 1) {
+        session.u = req.body["uname"];
+        session.p = req.body["pword"];
+        session.e = req.body["email"];
+        
+        const verifyCode = crypto.randomUUID();
+
+        session.vcode = verifyCode;
+
+        mailer.sendMail({
+         from: process.env.mail_user,
+         to: req.body["email"],
+         subject: "Subject",
+         text: `${verifyCode}`
+         }, (err, info) => {
+         if (err) {console.log(err);}
+         else {console.log("Email Successfully sent!", info);}
+         })
+        res.redirect("/register/email-verify");
     }
-    else if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count == 1) {
+    else if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count != 1 && countMail == 1) {
+        session.reg = "Email already exists!";
+        res.redirect("/register");
+    }
+    else if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count == 1 && countMail != 1) {
         session.reg = "Username already exists!";
+        res.redirect("/register");
+    }
+    else if (req.body["uname"].length >= 8 && req.body["pword"].length >= 8 && count == 1 && countMail == 1) {
+        session.reg = "Both Username and Email already exists!";
         res.redirect("/register");
     }
     else {
@@ -56,6 +86,37 @@ app.post("/register", async (req, res) => {
     }
 
 })
+
+app.get("/register/email-verify", (req, res, next) => {
+    if (session.verify == undefined) {
+        res.locals.verification = session.verify;
+        next();
+    }
+    else {
+        res.locals.verification = session.verify;
+        delete session.verify;
+        next();
+    }
+})
+
+app.get("/register/email-verify", (req, res)=>{
+    res.render("email-verify.ejs");
+});
+
+app.post("/register/email-verify", async (req, res)=>{
+    if (req.body["verifyemail"] == session.vcode && session.vcode != undefined) {
+        await messages.insertMany({"usr": session.u, "passwd": session.p, "email": session.e});
+        delete session.u;
+        delete session.p;
+        delete session.e;
+        delete session.vcode;
+        res.redirect("/login");
+    }
+    else {
+        session.verify = "The Verification code does not match!"
+        res.redirect("/register/email-verify");
+    }
+});
 
 app.get("/login", (req, res, next) => {
     if (session.pwdMatch == undefined) {

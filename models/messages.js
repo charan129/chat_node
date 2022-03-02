@@ -7,6 +7,9 @@ const message = new mongoose.Schema({
     passwd : {
         type: "String"
     },
+    email : {
+        type: "String"
+    }
 });
 
 const messages = mongoose.model("chats", message);
